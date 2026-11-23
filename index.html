@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Калькулятор отметок</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Russo+One&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE: игровой интерфейс Blitz, коротко и по делу
+   IDEA: экран гаража с тремя золотыми полосками отметок
+   PICTURE: три большие косые полосы, заполняются по прогрессу; крупное число боёв
+   COLOUR and TYPE: графит, золото #f5c04a, серый металл; Russo One + Inter
+   LAYOUT: выбор танка сверху, ниже ввод слева и большой результат справа */
+:root{color-scheme:light dark;--bg:light-dark(#f3f1ec,#141414);--panel:light-dark(#fff,#1d1d1d);--line:light-dark(#dedad2,#2c2c2c);--ink:light-dark(#1a1a1a,#ececec);--mute:light-dark(#6d6a63,#8d8d8d);--gold:light-dark(#c98a00,#f5c04a);--gold2:light-dark(#e6a91c,#ffd36b);--off:light-dark(#d8d4cb,#3a3a3a);--bad:light-dark(#c2361f,#ff7a5c);--ok:light-dark(#2c8a3e,#7fd98c)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+.wrap{max-width:1180px;margin:0 auto;padding:clamp(20px,3.5vw,44px) max(4vw,14px)}
+h1{font:400 clamp(28px,4.5vw,44px)/1.05 "Russo One",Inter,sans-serif;margin:0 0 6px;text-wrap:balance}
+h1 .s{color:var(--gold)}
+.sub{color:var(--mute);margin:0 0 22px;max-width:70ch}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+h2{font:400 17px/1.2 "Russo One",Inter,sans-serif;margin:0 0 14px}
+.pick{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;margin-bottom:16px}
+.tiers{display:flex;gap:6px}
+.tiers button,.seg button{font:600 15px Inter,sans-serif;min-height:44px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.tiers button[aria-pressed=true],.seg button[aria-pressed=true]{background:var(--gold);border-color:var(--gold);color:#1a1300}
+input,select{font:500 16px Inter,sans-serif;width:100%;min-height:44px;padding:8px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mute);margin-bottom:4px}
+.grp{border-top:1px solid var(--line);padding-top:14px;margin-top:4px}
+.grp:first-of-type{border:0;padding-top:0;margin:0}
+.th{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.hint{font-size:13px;color:var(--mute);margin:6px 0 0}
+.seg{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.marks{display:flex;gap:clamp(8px,2vw,18px);justify-content:center;padding:6px 0 16px}
+.mk{text-align:center;cursor:pointer;background:none;border:0;color:var(--mute);font:600 13px Inter,sans-serif;padding:4px}
+.mk.sel{color:var(--gold)}
+.mk svg{display:block;width:clamp(70px,13vw,110px);height:auto;margin:0 auto 6px}
+.big{text-align:center;border-top:1px solid var(--line);padding-top:16px}
+.big .n{font:400 clamp(48px,9vw,84px)/1 "Russo One",sans-serif;color:var(--gold);white-space:nowrap}
+.big .t{font-size:16px;margin-top:6px}
+.big .t.bad{color:var(--bad)}.big .t.ok{color:var(--ok)}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:16px}
+.st{background:var(--bg);border-radius:10px;padding:10px 12px}
+.st b{display:block;font:400 20px "Russo One",sans-serif;white-space:nowrap}
+.st span{font-size:12px;color:var(--mute)}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:14px}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:600;color:var(--mute);font-size:12px}
+.note{font-size:13px;color:var(--mute);margin-top:18px;max-width:80ch}
+@media(max-width:820px){.grid{grid-template-columns:minmax(0,1fr)}.out{order:-1}}
+@media(max-width:600px){.pick{grid-template-columns:minmax(0,1fr)}.stats{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.stats .st:last-child{grid-column:1/-1}table{font-size:13px}}
+@media(prefers-reduced-motion:no-preference){.fill{transition:clip-path .5s ease}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Калькулятор отметок <span class="s">///</span></h1>
+  <p class="sub">Выбери танк, впиши общий средний урон и урон за текущую сессию. Калькулятор покажет, сколько ещё боёв нужно, чтобы добить 2 или 3 отметку.</p>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="pick">
+      <div class="tiers" id="tiers">
+        <button data-t="10" aria-pressed="true">X</button>
+        <button data-t="9" aria-pressed="false">IX</button>
+        <button data-t="8" aria-pressed="false">VIII</button>
+      </div>
+      <div>
+        <input id="tank" list="tanklist" placeholder="Начни вводить название танка…" autocomplete="off">
+        <datalist id="tanklist"></datalist>
+      </div>
+    </div>
+    <label>Планки урона для этого танка (можно поправить вручную)</label>
+    <div class="th">
+      <div><label for="m1">1 отметка</label><input id="m1" type="number" inputmode="numeric" min="0"></div>
+      <div><label for="m2">2 отметки</label><input id="m2" type="number" inputmode="numeric" min="0"></div>
+      <div><label for="m3">3 отметки</label><input id="m3" type="number" inputmode="numeric" min="0"></div>
+    </div>
+    <p class="hint" id="src"></p>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <div class="grp">
+        <h2>Моя статистика на танке</h2>
+        <div class="row">
+          <div><label for="b0">Боёв всего (уже с сессией)</label><input id="b0" type="number" inputmode="numeric" min="0" value="100"></div>
+          <div><label for="a0">Средний урон сейчас</label><input id="a0" type="number" inputmode="numeric" min="0" value="2000"></div>
+        </div>
+        <p class="hint">Пиши цифры как в игре сейчас: бои сессии уже входят сюда. Например, было 90, сыграл 10 — пиши 100.</p>
+      </div>
+      <div class="grp">
+        <h2>Текущая сессия</h2>
+        <div class="seg" id="mode">
+          <button data-m="avg" aria-pressed="true">Средний урон за бой</button>
+          <button data-m="sum" aria-pressed="false">Урон всего за сессию</button>
+        </div>
+        <div class="row">
+          <div><label for="bs">Боёв в сессии</label><input id="bs" type="number" inputmode="numeric" min="0" value="5"></div>
+          <div><label for="as" id="aslbl">Средний урон в сессии</label><input id="as" type="number" inputmode="numeric" min="0" value="3000"></div>
+        </div>
+        <p class="hint">Прогноз считается так, будто дальше ты играешь с таким же средним уроном, как в этой сессии. Если хочешь задать другой темп, впиши его ниже.</p>
+        <div class="row" style="margin-top:10px">
+          <div><label for="pace">Свой темп дальше (необязательно)</label><input id="pace" type="number" inputmode="numeric" min="0" placeholder="= урон сессии"></div>
+          <div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card out">
+      <div class="marks" id="marks"></div>
+      <div class="big">
+        <div class="n" id="bigN">—</div>
+        <div class="t" id="bigT"></div>
+      </div>
+      <div class="stats">
+        <div class="st"><b id="sAvg">—</b><span>средний урон сейчас</span></div>
+        <div class="st"><b id="sGap">—</b><span>не хватает до планки</span></div>
+        <div class="st"><b id="sTot">—</b><span>средний до сессии</span></div>
+      </div>
+      <table>
+        <thead><tr><th>Если сыграть ещё</th><th>Нужен средний урон</th></tr></thead>
+        <tbody id="need"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <p class="note">Как считается: общие бои и средний урон уже включают сессию; сессия задаёт темп, с которым ты будешь играть дальше. Число боёв — это сколько нужно сыграть, чтобы общий средний поднялся до планки при выбранном темпе. Если игра считает отметки по последним боям, а не по всей статистике, реальное число может отличаться. У части танков IX и VIII уровней на blitzhata указаны не все планки, их можно вписать вручную.</p>
+</div>
+
+<script src="data.js"></script>
+<script>
+{
+const M=window.MARKS||{tiers:{}};
+const DATA={};
+for(const t in M.tiers)DATA[t]=M.tiers[t].map(r=>({n:r[0],m:r.slice(1)}));
+const UPD=M.updated?M.updated.split('-').reverse().join('.'):'—';
+const SRC_OK=`Данные: blitzhata.ru/marks, обновлено ${UPD}. Обновляются автоматически раз в неделю.`;
+
+const $=id=>document.getElementById(id);
+const fmt=n=>Math.round(n).toLocaleString('ru-RU');
+let tier='10',mode='avg',target=3;
+const ids=['b0','a0','bs','as','pace','m1','m2','m3','tank'];
+
+function stripes(k,fill,sel){
+  // k = номер отметки (1..3), fill = 0..1 прогресс
+  const bars=[0,1,2].map(i=>{const x=8+i*30;const on=i<k;
+    return `<path d="M${x+12} 6 L${x+32} 6 L${x+20} 54 L${x} 54Z" fill="${on?'var(--off)':'transparent'}" stroke="var(--off)" stroke-width="${on?0:1.5}" opacity="${on?1:.5}"/>`}).join('');
+  const gold=[0,1,2].filter(i=>i<k).map(i=>{const x=8+i*30;return `<path d="M${x+12} 6 L${x+32} 6 L${x+20} 54 L${x} 54Z" fill="url(#g${k})"/>`}).join('');
+  const clip=`inset(${(100-Math.max(0,Math.min(1,fill))*100).toFixed(1)}% 0 0 0)`;
+  return `<button class="mk${sel?' sel':''}" data-k="${k}" aria-pressed="${sel}"><svg viewBox="0 0 106 60" aria-hidden="true"><defs><linearGradient id="g${k}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--gold2)"/><stop offset="1" stop-color="var(--gold)"/></linearGradient></defs>${bars}<g class="fill" style="clip-path:${clip}">${gold}</g></svg>${k} ${k===1?'отметка':'отметки'}</button>`;
+}
+
+function fillList(){
+  $('tanklist').innerHTML=DATA[tier].map(t=>`<option value="${t.n.replace(/"/g,'&quot;')}">`).join('');
+  document.querySelectorAll('#tiers button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.t===tier));
+}
+function findTank(name){
+  for(const t of ['10','9','8']){const f=DATA[t].find(x=>x.n.toLowerCase()===name.trim().toLowerCase());if(f)return{t,f}}
+  return null;
+}
+function applyTank(){
+  const r=findTank($('tank').value);
+  if(!r)return;
+  if(r.t!==tier){tier=r.t;fillList()}
+  ['m1','m2','m3'].forEach((id,i)=>$(id).value=r.f.m[i]??'');
+  const miss=r.f.m.some(v=>v==null);
+  $('src').textContent=miss?'На blitzhata для этого танка указаны не все планки. Недостающие можно вписать вручную.':SRC_OK;
+  calc();
+}
+const num=id=>{const v=parseFloat($(id).value);return isFinite(v)?v:NaN};
+
+function calc(){
+  const B0=num('b0')||0,A0=num('a0')||0,Bs=num('bs')||0,Sraw=num('as')||0;
+  const S=mode==='avg'?Sraw:(Bs>0?Sraw/Bs:0);
+  const P=isFinite(num('pace'))?num('pace'):S;
+  // Сессия уже входит в общее число боёв и общий средний урон
+  const B=B0,D=B0*A0,avg=B>0?A0:0;
+  const prevB=B0-Bs,prev=prevB>0&&Bs<=B0?(D-Bs*S)/prevB:NaN;
+  const th=[num('m1'),num('m2'),num('m3')];
+  $('marks').innerHTML=[1,2,3].map(k=>stripes(k,isFinite(th[k-1])&&th[k-1]>0?avg/th[k-1]:0,k===target)).join('');
+  const T=th[target-1];
+  $('sAvg').textContent=B>0?fmt(avg):'—';
+  $('sTot').textContent=isFinite(prev)?fmt(prev):'—';
+  const bigN=$('bigN'),bigT=$('bigT');bigT.className='t';
+  if(!isFinite(T)||T<=0){bigN.textContent='—';bigT.textContent=`Впиши планку для ${target} ${target===1?'отметки':'отметок'}`;$('sGap').textContent='—';$('need').innerHTML='';save();return}
+  $('sGap').textContent=avg>=T?'0':fmt(T-avg);
+  if(B===0){bigN.textContent='—';bigT.textContent='Впиши сыгранные бои и урон';}
+  else if(avg>=T){bigN.textContent='✓';bigT.textContent=`Планка ${fmt(T)} уже пройдена`;bigT.classList.add('ok')}
+  else if(P<=T){bigN.textContent='∞';bigT.textContent=`С темпом ${fmt(P)} урона за бой планку ${fmt(T)} не догнать. Нужно стабильно делать больше ${fmt(T)}.`;bigT.classList.add('bad')}
+  else{const n=Math.ceil((T*B-D)/(P-T));bigN.textContent=fmt(n);bigT.textContent=`${n%10===1&&n%100!==11?'бой':(n%10>=2&&n%10<=4&&(n%100<10||n%100>=20))?'боя':'боёв'} с уроном ${fmt(P)} в среднем до планки ${fmt(T)}`}
+  $('need').innerHTML=B>0&&avg<T?[5,10,20,30,50,100].map(n=>{const r=(T*(B+n)-D)/n;return `<tr><td>${n} боёв</td><td>${fmt(r)}</td></tr>`}).join(''):'';
+  save();
+}
+function save(){try{localStorage.setItem('marks-calc',JSON.stringify({tier,mode,target,v:Object.fromEntries(ids.map(i=>[i,$(i).value]))}))}catch(e){}}
+function load(){try{const s=JSON.parse(localStorage.getItem('marks-calc')||'null');if(!s)return false;tier=s.tier||tier;mode=s.mode||mode;target=s.target||target;ids.forEach(i=>{if(s.v&&s.v[i]!=null)$(i).value=s.v[i]});return true}catch(e){return false}}
+function setMode(m){mode=m;document.querySelectorAll('#mode button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===m));$('aslbl').textContent=m==='avg'?'Средний урон в сессии':'Урон всего за сессию';}
+
+$('tiers').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;tier=b.dataset.t;fillList();$('tank').value='';$('tank').focus();save()});
+$('mode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const Bs=num('bs')||0,v=num('as');
+  if(isFinite(v)&&Bs>0&&b.dataset.m!==mode)$('as').value=Math.round(b.dataset.m==='sum'?v*Bs:v/Bs);
+  setMode(b.dataset.m);calc()});
+$('marks').addEventListener('click',e=>{const b=e.target.closest('.mk');if(!b)return;target=+b.dataset.k;calc()});
+$('tank').addEventListener('input',applyTank);$('tank').addEventListener('change',applyTank);
+['b0','a0','bs','as','pace','m1','m2','m3'].forEach(i=>$(i).addEventListener('input',calc));
+
+const had=load();
+setMode(mode);fillList();
+if(!had){$('tank').value='ИС-7';}
+if(!had||!$('m3').value)applyTank();
+$('src').textContent=$('src').textContent||SRC_OK;
+calc();
+}
+</script>
+</body>
+</html>
